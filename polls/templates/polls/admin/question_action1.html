@@ -1,0 +1,18 @@
+{% extends 'admin/base_site.html' %}
+
+{% block content %}
+<p>This is a custom action page for a admin <b>instance</b>.</p>
+
+<pre>
+{{ question|pprint }}
+
+{% for item in question.choice_set.all %}
+    {{ item }}
+{% endfor %}
+</pre>
+
+{% endblock %}
+
+
+{% block buttons_bottom %}
+{% endblock %}
