@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.core import serializers
 from django.forms.models import model_to_dict
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.urls import path, reverse_lazy
@@ -147,3 +147,78 @@ class ChoiceAdmin(admin.ModelAdmin):
         ]
 
         return my_urls + urls
+
+
+################################################################################
+class AdminAction(Question):
+    ''' we create this model so we can register something else in the admin
+    without a database entry '''
+
+    class Meta:
+        proxy = True
+
+
+@admin.register(AdminAction)
+class PollsAdminActions(admin.ModelAdmin):
+    ''' I don't want to display anything in this admin;
+    When an user clicks the changelist_view link we'll redirect to
+    somewhere else '''
+
+    def view1(self, request):
+        return HttpResponse('View 1')
+
+    def view2(self, request):
+        return HttpResponse('View 2')
+
+    def get_urls(self):
+        urls = super().get_urls()
+
+        my_urls = [
+            path('view1/',
+                 self.admin_site.admin_view(self.view1),
+                 name='polls_adminaction_view1',),
+            path('view2/',
+                 self.admin_site.admin_view(self.view2),
+                 name='polls_adminaction_view2',),
+        ]
+
+        return my_urls + urls
+
+    def changelist_view(self, request, extra_context=None):
+        ''' overriding the list view... '''
+        # when extending change_list.html one must set some context variables...
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['cl'] = self.get_changelist_instance(request)
+        context.update(extra_context or {})
+
+        return TemplateResponse(
+            request,
+            'polls/admin/polls_admin_actions.html',
+            context,
+        )
+
+    def has_add_permission(self, request):
+        ''' disables the Add button on admin '''
+        return False
+
+    # every default view will redirect to change_list
+    def add_view(self, *args, **kwargs):
+        return HttpResponseRedirect(
+            reverse_lazy('admin:polls_adminaction_changelist')
+        )
+
+    def delete_view(self, *args, **kwargs):
+        return HttpResponseRedirect(
+            reverse_lazy('admin:polls_adminaction_changelist')
+        )
+
+    def history_view(self, *args, **kwargs):
+        return HttpResponseRedirect(
+            reverse_lazy('admin:polls_adminaction_changelist')
+        )
+
+    def change_view(self, *args, **kwargs):
+        return HttpResponseRedirect(
+            reverse_lazy('admin:polls_adminaction_changelist')
+        )
